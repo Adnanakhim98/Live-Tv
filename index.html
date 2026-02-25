@@ -1,244 +1,553 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Custom Video Player - Auto Quality Toggle</title>
-    <style>
-        /* Basic styles for the video container */
-        .video-container {
-            max-width: 600px;
-            top: 110px;
-            bottom: 140px;
-            right: 190px;
-            left: -115px;
-            margin: 10px auto;
-            background: black;
-            position: relative;
-            border: 1px solid #ddd;
-            transform-origin: center center;
-            transform: rotate(90deg); /* Rotate container */
-            height: 100vw;
-            width: 100vh;
-        }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>Live Sports App</title>
 
-        video {
-            width: 120%;
-            height: 90%;
-        }
+  <!-- HLS.js -->
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <!-- Shaka Player -->
+  <script src="https://cdn.jsdelivr.net/npm/shaka-player@latest/dist/shaka-player.compiled.js"></script>
 
-        /* Style for buttons container */
-        .buttons-container {
-            position: absolute;
-            top: 357px;
-            left: 195px;
-           border: yes;
- display: flex;
-            gap: 13px;
-            transform: rotate(-360deg); /* Rotate buttons back to normal */
-            transition: opacity 0.5s;
-            opacity: 1; /* Initially visible */
-        }
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background-color: #1e1e1e;
+      color: white;
+      overflow-x: hidden;
+    }
+    .container {
+      max-width: 100%;
+      padding: 8px;
+    }
+    .header {
+      padding: 16px;
+      font-size: 20px;
+      font-weight: bold;
+      text-align: center;
+      background: #000;
+      position: sticky;
+      top: 0;
+      z-index: 999;
+    }
+    .tabs {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      flex-wrap: wrap;
+      background: #111;
+      padding: 10px 0;
+    }
+    .tabs div {
+      cursor: pointer;
+      padding: 8px 16px;
+      font-size: 16px;
+    }
+    .tabs .active {
+      border-bottom: 2px solid red;
+    }
+    .match-section {
+      display: none;
+    }
+    .match-section.active {
+      display: block;
+    }
+    .match-card {
+      margin: 15px;
+      padding: 12px;
+      background-color: #1c1c1c;
+      border: 2px solid aqua;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    .match-card:hover {
+      transform: scale(1.02);
+      box-shadow: 0 0 10px aqua;
+      border-color: lime;
+    }
+    .live.flashing {
+      color: red;
+      animation: flash 1s infinite;
+    }
+    .live {
+      font-weight: bold;
+      margin: -5px 0;
+    }
+    @keyframes flash {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+    .timer {
+      font-size: 16px;
+      margin-top: 6px;
+    }
+    .video-area {
+      display: none;
+      padding: 10px;
+      background: #121212;
+    }
+    .video-area.active {
+      display: block;
+    }
+    .video-container-wrapper {
+      position: relative;
+      width: 100%;
+    }
+    .top-controls {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      padding: 10px 0;
+    }
+    .server-buttons {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .server-buttons button,
+    .fullscreen-btn {
+      padding: 6px 12px;
+      border: none;
+      border-radius: 20px;
+      font-size: 14px;
+      font-weight: bold;
+      cursor: pointer;
+      background-color: #333;
+      color: white;
+    }
+    .server-buttons button.active {
+      background-color: red;
+    }
+    .fullscreen-btn:hover {
+      background-color: #555;
+    }
+    .video-container {
+      width: 100%;
+      height: 200px;
+      background: black;
+      position: relative;
+    }
+    .video-container video {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      background: black;
+    }
+    .match-teams {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 60px;
+      flex-wrap: wrap;
+    }
+    .team {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .team img {
+      margin-top: 10px;
+      width: 40px;
+      height: auto;
+    }
+    .team-name {
+      margin-top: 5px;
+      font-size: 14px;
+    }
 
-        /* Style for each button */
-        .server-btn {
-            background-color: Yellow;
-            color: black;
-            font-weight: bold;
-border: none;
-            padding: 5px 10px;
-            border-radius: 20px;
-            cursor: pointer;
-            font-size: 14px;
-        }
+    @media (min-width: 600px) {
+      .video-container {
+        height: 300px;
+      }
+      .team img {
+        width: 60px;
+      }
+    }
+    .live {
+  margin: -5px 0;
+  font-size: 12px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  font-weight: bold;
+  animation: flash 1s infinite, glow 2s infinite ease-in-out, pulse 9.5s infinite;
+  margin-left: auto;
+}
 
-        /* Highlight for selected server */
-        .server-btn.active {
-            background-color: #00FFFF;
-        }
+.match-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+  /* ... পূর্বের সকল স্টাইল অপরিবর্তিত থাকবে ... */
 
-        /* Style for bottom controls */
-        .controls {
-            position: absolute;
-            bottom: 10px;
-            left: 10px;
-          right: 100px
+  .live.flashing {
+    color: red;
+    font-weight: bold;
+    animation: flash 1s infinite, glow 2s infinite ease-in-out, pulse 1.5s infinite;
+  }
 
-            color: red;
-            transform: rotate(-360deg); /* Rotate controls back to normal */
-        }
+  @keyframes flash {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
 
-        /* Style for quality buttons */
-        .quality-container {
-            position: absolute;
-            bottom: 50px;
-         font-weight: bold;
-   left: 15px;
-            display: flex;
-border-radius: 20px;
-            flex-direction: column;
-            gap: 10px;
-            transform: rotate(-360deg); /* Rotate controls back to normal */
-            display: none; /* Initially hidden */
-        }
+  @keyframes glow {
+    0% {
+      text-shadow: 0 0 5px red, 0 0 10px red, 0 0 20px red;
+    }
+    50% {
+      text-shadow: 0 0 10px white, 0 0 20px red, 0 0 30px red;
+    }
+    100% {
+      text-shadow: 0 0 5px red, 0 0 10px red, 0 0 20px red;
+    }
+  }
 
-        .quality-btn {
-            background-color: grey;
-            color: black;
-           font-weight: bold;
- border: none;
-border-radius: 20px;
-            padding: 5px 10px;
-            margin: 5px;
-            cursor: pointer;
-        }
+  @keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+  }
 
-        .quality-btn.active {
-            background-color: #00FFFF;
-        }
-
-        /* Style for the quality options toggle button */
-        .toggle-quality-btn {
-        position: absolute;
- font-weight: bold;
-   background-color: red;
-            color: white;
-             top: 353px;
-            left: 10px;
-      border-radius: 20px;     
- border: yes;
-            padding: 5px 10px;
-            margin: 5px;
-            cursor: pointer;
-        }
-
-        body {
-            background-image: url('https://i.ibb.co/XVPL5Cb/images-3.png'); /* Fixed background */
-            background-attachment: fixed;
-            background-size: cover;
-        }
-    </style>
+  .live {
+    margin: -5px 0;
+    font-size: 18px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  </style>
 </head>
 <body>
 
-<div class="video-container">
-    <video id="videoPlayer" controls></video>
+<div class="header">Live Sports App</div>
 
-    <!-- Server Buttons -->
-    <div class="buttons-container">
-        <button class="server-btn" id="server1Btn">Server 1</button>
-        <button class="server-btn" id="server2Btn">Server 2</button>
-        <button class="server-btn" id="server3Btn">Server 3</button>
+<div class="video-area" id="videoArea">
+  <h3 id="matchTitle">Match Name</h3>
+  <div class="video-container-wrapper">
+    <div class="top-controls">
+      <div class="server-buttons" id="serverButtons"></div>
+      <button class="fullscreen-btn" onclick="rotateAndFullscreen()">Rotate Fullscreen</button>
     </div>
-
-    <!-- Quality Buttons -->
-    <div class="quality-container" id="qualityContainer">
-        <button class="quality-btn active" id="autoQuality">Auto</button>
-        <!-- Quality options will be dynamically created here -->
+    <div class="video-container" id="videoContainer">
+      <video id="videoElement" controls autoplay playsinline></video>
     </div>
-    
-    <!-- Toggle Quality Options Button -->
-    <button class="toggle-quality-btn" id="toggleQualityOptions">Quality Options</button>
+  </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+<div class="tabs">
+  <div class="active" onclick="showTab(this, 'football')">Football</div>
+  <div onclick="showTab(this, 'cricket')">Cricket</div>
+</div>
+
+<!-- Football Section -->  
+<div id="football" class="match-section active">  
+  <div class="match-card"  
+     data-start="2025-06-22T16:00:00"  
+     data-end="2025-07-22T18:00:00"  
+     onclick="prepareVideoPlayer('La Liga Final',  
+       ['https://example.com/laliga/index.mpd',  
+        'https://example.com/laliga/stream.m3u8'],  
+       [  
+         { drmScheme: 'clearkey', drmLicense: '11111111111111111111111111111111:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' },  
+         {}  
+       ]  
+     )">  
+    <div>La Liga Final</div>  
+    <div class="match-teams">  
+      <div class="team">  
+        <img src="https://upload.wikimedia.org/wikipedia/en/f/f4/FC_Barcelona_%28crest%29.svg" />  
+        <div class="team-name">Barcelona</div>  
+      </div>  
+      <b>VS</b>  
+      <div class="team">  
+        <img src="https://upload.wikimedia.org/wikipedia/en/5/56/Atletico_Madrid_2017_logo.svg" />  
+        <div class="team-name">Atlético Madrid</div>  
+      </div>  
+    </div>  
+    <div class="live" id="status0">Loading...</div>  
+    <div class="timer" id="timer0">--:--:--</div>  
+  </div>  
+  
+  <div class="match-card"  
+     data-start="2025-06-25T20:00:00"  
+     data-end="2025-07-25T23:00:00"  
+     onclick="prepareVideoPlayer('Serie A Derby',  
+       ['https://example.com/seriea/index.mpd',  
+        'https://example.com/seriea/stream.m3u8'],  
+       [  
+         { drmScheme: 'clearkey', drmLicense: '22222222222222222222222222222222:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb' },  
+         {}  
+       ]  
+     )">  
+    <div>Serie A Derby</div>  
+    <div class="match-teams">  
+      <div class="team">  
+        <img src="https://upload.wikimedia.org/wikipedia/en/e/e1/Inter_Milan.svg" />  
+        <div class="team-name">Inter Milan</div>  
+      </div>  
+      <b>VS</b>  
+      <div class="team">  
+        <img src="https://upload.wikimedia.org/wikipedia/en/d/d0/AC_Milan_logo.svg" />  
+        <div class="team-name">AC Milan</div>  
+      </div>  
+    </div>  
+    <div class="live" id="status1">Loading...</div>  
+    <div class="timer" id="timer1">--:--:--</div>  
+  </div>  
+  
+  <!-- New Football Match Added -->  
+  <div class="match-card"  
+     data-start="2025-07-01T18:30:00"  
+     data-end="2025-07-01T21:30:00"  
+     onclick="prepareVideoPlayer('Premier League Showdown',  
+       ['https://example.com/epl/index.mpd',  
+        'https://example.com/epl/stream.m3u8'],  
+       [  
+         { drmScheme: 'clearkey', drmLicense: '44444444444444444444444444444444:dddddddddddddddddddddddddddddddd' },  
+         {}  
+       ]  
+     )">  
+    <div>Premier League Showdown</div>  
+    <div class="match-teams">  
+      <div class="team">  
+        <img src="https://upload.wikimedia.org/wikipedia/en/7/7a/Manchester_United_FC_crest.svg" />  
+        <div class="team-name">Man United</div>  
+      </div>  
+      <b>VS</b>  
+      <div class="team">  
+        <img src="https://upload.wikimedia.org/wikipedia/en/c/c2/Chelsea_FC.svg" />  
+        <div class="team-name">Chelsea</div>  
+      </div>  
+    </div>  
+    <div class="live" id="status2">Loading...</div>  
+    <div class="timer" id="timer2">--:--:--</div>  
+  </div>  
+</div>  
+  
+<!-- Cricket Section -->  
+<div id="cricket" class="match-section">  
+  <div class="match-card"  
+     data-start="2025-06-20T14:30:00"  
+     data-end="2025-07-27T17:30:00"  
+     onclick="prepareVideoPlayer('India Tour Of England 2025',  
+       ['https://a170aivottlinear-a.akamaihd.net/OTTB/fra-nitro/live/clients/dash/enc/f60kqesunw/out/v1/a435ed7a00f947deb4369b46d8f2fb70/cenc.mpd',  
+        'https://example.com/icctest/stream.m3u8'],  
+       [  
+         { drmScheme: 'clearkey', drmLicense: '1779C27B9D077A3BA0C9CC1BB9A94B9F:CC5CF3B7928FB9E0A1EE6A8B566F0A8E' },  
+         {}  
+       ]  
+     )">  
+    <div class="match-header">
+  <div>La Liga Final</div>
+  <div class="live" id="status3">Loading...</div>
+</div>
+    <div class="match-teams">  
+      <div class="team">  
+        <img src="https://i.postimg.cc/7hz6Qbnx/world-4.png" />  
+        <div class="team-name">India</div>  
+      </div>  
+      <b>VS</b>  
+      <div class="team">  
+        <img src="https://i.postimg.cc/Y9KB25nb/circle-3.png" />  
+        <div class="team-name">England</div>  
+      </div>  
+    </div>  
+    <div class="live" id="status3"></div>  
+    <div class="timer" id="timer3">--:--:--</div>  
+  </div>  
+  
+  <!-- New Cricket Match Added -->  
+  <div class="match-card"  
+     data-start="2025-07-03T15:00:00"  
+     data-end="2025-07-03T18:00:00"  
+     onclick="prepareVideoPlayer('Asia Cup Final',  
+       ['https://example.com/asiacup/index.mpd',  
+        'https://example.com/asiacup/stream.m3u8'],  
+       [  
+         { drmScheme: 'clearkey', drmLicense: '55555555555555555555555555555555:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee' },  
+         {}  
+       ]  
+     )">  
+    <div>Asia Cup Final</div>  
+    <div class="match-teams">  
+      <div class="team">  
+        <img src="https://i.postimg.cc/0QyBtZvc/india.png" />  
+        <div class="team-name">India</div>  
+      </div>  
+      <b>VS</b>  
+      <div class="team">  
+        <img src="https://i.postimg.cc/4x2WqLvs/pakistan.png" />  
+        <div class="team-name">Pakistan</div>  
+      </div>  
+    </div>  
+    <div class="live" id="status4">Loading...</div>  
+    <div class="timer" id="timer4">--:--:--</div>  
+  </div>  
+</div>  
+
+<!-- JS Code -->
 <script>
-    const video = document.getElementById('videoPlayer');
-    const serverButtons = document.querySelectorAll('.server-btn');
-    const qualityContainer = document.getElementById('qualityContainer');
-    const toggleQualityButton = document.getElementById('toggleQualityOptions');
-    let hls = null; // Declare the HLS instance
+let hls, shakaPlayer;
 
-    // Server URLs
-    const serverLinks = {
-        server1: 'https://d75dqofg5kmfk.cloudfront.net/bpk-tv/9XM/default/index.m3u8',
-        server2: 'https://tsports.iptvbd.xyz/master_480.m3u8',
-        server3: 'https://proxiimity-fire.mominulislamm3u8.workers.dev/stream.m3u8?id=0000001'
+function cleanupPlayers(videoElement) {
+  if (hls) { hls.destroy(); hls = null; }
+  if (shakaPlayer) { shakaPlayer.destroy(); shakaPlayer = null; }
+  videoElement.pause();
+  videoElement.removeAttribute('src');
+  videoElement.load();
+}
+
+async function setupShaka(videoElement, url, keyId = null, key = null) {
+  shakaPlayer = new shaka.Player(videoElement);
+  const config = { abr: { enabled: true } };
+  if (keyId && key) config.drm = { clearKeys: { [keyId]: key } };
+  shakaPlayer.configure(config);
+  try { await shakaPlayer.load(url); } catch (e) { console.error('Shaka error', e); }
+}
+
+function setupHls(videoElement, url) {
+  if (Hls.isSupported()) {
+    hls = new Hls();
+    hls.loadSource(url);
+    hls.attachMedia(videoElement);
+    hls.on(Hls.Events.MANIFEST_PARSED, () => videoElement.play());
+  } else if (videoElement.canPlayType('application/vnd.apple.mpegurl')) {
+    videoElement.src = url;
+    videoElement.addEventListener('loadedmetadata', () => videoElement.play());
+  }
+}
+
+function loadStream(url, videoElement, drmInfo = null) {
+  cleanupPlayers(videoElement);
+  if (url.endsWith('.mpd')) {
+    if (drmInfo?.drmScheme === 'clearkey' && drmInfo?.drmLicense) {
+      const [keyId, key] = drmInfo.drmLicense.split(':');
+      setupShaka(videoElement, url, keyId, key);
+    } else {
+      setupShaka(videoElement, url);
+    }
+  } else if (url.endsWith('.m3u8')) {
+    setupHls(videoElement, url);
+  } else {
+    videoElement.src = url;
+    videoElement.play().catch(() => {});
+  }
+}
+
+function prepareVideoPlayer(title, servers, drmArray = []) {
+  const videoElement = document.getElementById('videoElement');
+  cleanupPlayers(videoElement);
+  document.getElementById('matchTitle').innerText = title;
+  document.getElementById('videoArea').classList.add('active');
+  loadStream(servers[0], videoElement, drmArray[0]);
+
+  const serverButtonsContainer = document.getElementById('serverButtons');
+  serverButtonsContainer.innerHTML = '';
+
+  servers.forEach((url, idx) => {
+    const btn = document.createElement('button');
+    btn.innerText = `Server ${idx + 1}`;
+    btn.className = idx === 0 ? 'active' : '';
+    btn.onclick = () => {
+      document.querySelectorAll('#serverButtons button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      loadStream(url, videoElement, drmArray[idx]);
     };
+    serverButtonsContainer.appendChild(btn);
+  });
+}
 
-    // Switch server function
-    function switchServer(url) {
-        if (hls) {
-            hls.destroy(); // Destroy the previous HLS instance before switching
-        }
+function showTab(tabElement, sectionId) {
+  document.querySelectorAll('.tabs div').forEach(t => t.classList.remove('active'));
+  tabElement.classList.add('active');
+  document.querySelectorAll('.match-section').forEach(sec => sec.classList.remove('active'));
+  document.getElementById(sectionId).classList.add('active');
+}
 
-        hls = new Hls(); // Initialize a new HLS instance
-        hls.loadSource(url); // Load the new source URL
-        hls.attachMedia(video); // Attach HLS to the video element
-
-        // Once media is attached, show available quality levels
-        hls.on(Hls.Events.MANIFEST_PARSED, () => {
-            const levels = hls.levels; // Get available quality levels
-
-            // Clear the current quality buttons in the container
-            qualityContainer.innerHTML = '<button class="quality-btn active" id="autoQuality">Auto</button>';
-
-            // Create buttons for each quality level
-            levels.forEach((level, index) => {
-                const button = document.createElement('button');
-                button.classList.add('quality-btn');
-                button.textContent = `${level.height}p`; // Use height as quality label
-                button.addEventListener('click', () => selectQuality(index));
-                qualityContainer.appendChild(button);
-            });
-
-            // Auto quality button event
-            document.getElementById('autoQuality').addEventListener('click', () => {
-                hls.currentLevel = -1; // Auto mode
-                setActiveQualityButton('autoQuality'); // Set active button to Auto
-            });
-        });
+function updateMatchTimers() {
+  const now = new Date();
+  document.querySelectorAll('.match-card').forEach((card, index) => {
+    const start = new Date(card.getAttribute('data-start'));
+    const end = new Date(card.getAttribute('data-end'));
+    const status = document.getElementById('status' + index);
+    const timer = document.getElementById('timer' + index);
+    if (now < start) {
+      const diff = start - now;
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+      timer.innerText = `${days}d ${hours}h ${minutes}m ${seconds}s`;
+      status.innerText = '';
+      status.classList.remove('flashing');
+      card.style.display = 'block';
+    } else if (now >= start && now <= end) {
+      status.innerText = '● Live';
+      status.classList.add('flashing');
+      timer.innerText = '';
+      card.style.display = 'block';
+    } else {
+      card.style.display = 'none';
     }
+  });
+}
+setInterval(updateMatchTimers, 1000);
+updateMatchTimers();
+</script>
 
-    // Quality selection handling
-    function selectQuality(levelIndex) {
-        hls.currentLevel = levelIndex; // Set the selected quality level
-        alert(`Switched to quality level ${hls.levels[levelIndex].height}p`); // Display selected quality
-        setActiveQualityButton(`quality-btn-${levelIndex}`); // Set the selected button active
-    }
+<script>
+let rotated = false;
+function rotateAndFullscreen() {
+  const video = document.getElementById('videoElement');
+  const container = document.getElementById('videoContainer');
 
-    // Function to set the active quality button
-    function setActiveQualityButton(activeId) {
-        const qualityButtons = document.querySelectorAll('.quality-btn');
-        qualityButtons.forEach(btn => {
-            btn.classList.remove('active');
-            if (btn.id === activeId) {
-                btn.classList.add('active');
-            }
-        });
-    }
-
-    // Toggle quality options display
-    toggleQualityButton.addEventListener('click', () => {
-        if (qualityContainer.style.display === 'none' || qualityContainer.style.display === '') {
-            qualityContainer.style.display = 'flex'; // Show quality options
-            toggleQualityButton.textContent = 'Hide Quality Options'; // Change button text
-        } else {
-            qualityContainer.style.display = 'none'; // Hide quality options
-            toggleQualityButton.textContent = 'Show Quality Options'; // Change button text
-        }
-    });
-
-    // Switch server when button is clicked
-    serverButtons.forEach(button => {
-        button.addEventListener('click', () => {
-            // Remove active class from all buttons
-            serverButtons.forEach(btn => btn.classList.remove('active'));
-            button.classList.add('active'); // Set clicked button as active
-
-            // Switch server based on button
-            if (button.id === 'server1Btn') {
-                switchServer(serverLinks.server1);
-            } else if (button.id === 'server2Btn') {
-                switchServer(serverLinks.server2);
-            } else if (button.id === 'server3Btn') {
-                switchServer(serverLinks.server3);
-            }
-        });
-    });
-
-    // Load the default server on page load
-    switchServer(serverLinks.server1);
+  if (!rotated) {
+    if (container.requestFullscreen) container.requestFullscreen();
+    screen.orientation?.lock?.('landscape').catch(() => {});
+    history.pushState({ rotated: true }, '');
+    video.style.position = "absolute";
+    video.style.top = "100%";
+    video.style.left = "100%";
+    video.style.transform = "translate(-50%, -50%) rotate(90deg)";
+    video.style.width = "100vh";
+    video.style.height = "100vw";
+    video.style.objectFit = "contain";
+    video.style.background = "black";
+    rotated = true;
+  } else {
+    exitRotationMode();
+    history.back();
+  }
+}
+function exitRotationMode() {
+  const video = document.getElementById('videoElement');
+  if (document.fullscreenElement) {
+    document.exitFullscreen().catch(() => {});
+  }
+  screen.orientation?.unlock?.();
+  video.style.position = "";
+  video.style.top = "";
+  video.style.left = "";
+  video.style.transform = "";
+  video.style.width = "100%";
+  video.style.height = "100%";
+  video.style.objectFit = "contain";
+  video.style.background = "black";
+  rotated = false;
+}
+window.addEventListener('popstate', function (event) {
+  if (rotated) {
+    exitRotationMode();
+  }
+});
 </script>
 
 </body>
