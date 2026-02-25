@@ -1,395 +1,220 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-  <title>Live Sports App</title>
-  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
-  <script src="https://cdn.jsdelivr.net/npm/shaka-player@latest/dist/shaka-player.compiled.js"></script>
-  <style>
-    * { box-sizing: border-box; }
-    body { margin: 0; font-family: Arial, sans-serif; background: #1e1e1e; color: white; overflow-x: hidden; }
-    .header { padding: 16px; font-size: 24px; font-weight: bold; text-align: center;
-      background: linear-gradient(to right, #ff004f, #6c00ff); color: black; position: sticky; top: 0; z-index: 999;
-      text-shadow: 0 0 5px #fff, 0 0 10px #ff004f, 0 0 20px #ff004f, 0 0 40px #ff004f;
-      animation: fadeInGlow 2s ease-in-out; border-bottom: 2px solid #fff; letter-spacing: 1px;
-    }
-    @keyframes fadeInGlow {
-      0% { opacity: 0; text-shadow: none; transform: translateY(-20px); }
-      100% { opacity: 1; text-shadow: 0 0 5px #fff, 0 0 10px #ff004f, 0 0 20px #ff004f, 0 0 40px #ff004f; transform: translateY(0); }
-    }
-    .tabs { display: flex; justify-content: center; gap: 20px; background: #111; padding: 10px 0; flex-wrap: wrap; }
-    .tabs div { cursor: pointer; padding: 8px 16px; font-size: 16px; }
-    .tabs .active { border-bottom: 2px solid red; }
-    .match-section { display: none; }
-    .match-section.active { display: block; }
-    .match-card { margin: 10px; padding: 12px; background-color: #1c1c1c; border: 2px solid aqua;
-      border-radius: 10px; cursor: pointer; transition: all 0.3s ease;
-    }
-    .match-card:hover { transform: scale(1.02); box-shadow: 0 0 10px aqua; border-color: lime; }
-    .live.flashing { color: red; animation: flash 1s infinite; }
-    .live { font-weight: bold; margin: -5px 0; }
-    @keyframes flash { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
-    .timer { font-size: 14px; margin-top: 6px; }
-    .video-area { display: none; padding: 10px; background: #121212; }
-    .video-area.active { display: block; }
-    .video-container-wrapper { position: relative; width: 100%; }
-    .top-controls { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; padding: 10px 0; }
-    .server-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
-    .server-buttons button, .fullscreen-btn { padding: 6px 12px; border: none; border-radius: 20px;
-      font-size: 14px; font-weight: bold; cursor: pointer; background-color: #333; color: white;
-    }
-    .server-buttons button.active { background-color: red; }
-    .fullscreen-btn:hover { background-color: #555; }
-    .video-container { width: 100%; height: 200px; background: black; position: relative; }
-    .video-container video { width: 100%; height: 100%; object-fit: contain; background: black; }
-    .match-teams { display: flex; justify-content: center; align-items: center; gap: 60px; flex-wrap: wrap; }
-    .team { display: flex; flex-direction: column; align-items: center; text-align: center; }
-    .team img { margin-top: 8px; width: 55px; height: 55px; border-radius: 50%; object-fit: cover; }
-    .team-name { margin-top: 3px; font-size: 14px; max-width: 80px; word-wrap: break-word; text-align: center; }
-    @media (min-width: 600px) {
-      .video-container { height: 300px; }
-      .team img { width: 60px; }
-    }
-      
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Live Football TV</title>
+
+<style>
+body{
+  margin:0;
+  font-family:Arial, Helvetica, sans-serif;
+  background:linear-gradient(120deg,#071b3a,#020b1d);
+  color:#fff;
+}
+
+header{
+  text-align:center;
+  padding:20px;
+}
+
+header h1{
+  color:#1ef5c5;
+}
+
+.container{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(300px,1fr));
+  gap:20px;
+  padding:20px;
+}
+
+.card{
+  background:#0d2348;
+  border-radius:15px;
+  padding:15px;
+  box-shadow:0 0 15px rgba(0,255,200,0.2);
+  transition:.3s;
+  position:relative;
+}
+
+.card:hover{
+  transform:translateY(-5px);
+  box-shadow:0 0 20px #1ef5c5;
+}
+
+.hd{
+  position:absolute;
+  right:10px;
+  top:10px;
+  background:#00ff8c;
+  color:#000;
+  padding:3px 8px;
+  border-radius:5px;
+  font-size:12px;
+}
+
+.match{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin:15px 0;
+}
+
+.team{
+  text-align:center;
+}
+
+.team img{
+  width:70px;
+}
+
+.vs{
+  font-size:20px;
+  color:#1ef5c5;
+}
+
+.btn{
+  width:100%;
+  padding:12px;
+  border:none;
+  background:#1ef5c5;
+  color:#000;
+  font-weight:bold;
+  border-radius:8px;
+  cursor:pointer;
+}
+
+.player{
+  position:fixed;
+  left:0;
+  top:0;
+  width:100%;
+  height:100%;
+  background:#000;
+  display:none;
+  justify-content:center;
+  align-items:center;
+  flex-direction:column;
+}
+
+.player video{
+  width:90%;
+  max-width:900px;
+}
+
+.close{
+  margin-top:10px;
+  padding:10px 20px;
+  background:red;
+  border:none;
+  color:#fff;
+  cursor:pointer;
+}
+
+</style>
 </head>
+
 <body>
-<div class="header">𝐒𝐏𝐎𝐑𝐓𝐒 ffg 𝐇𝐔𝐁 1.0</div>
 
-<div class="video-area" id="videoArea">
-  <h3 id="matchTitle">Match Name</h3>
-  <div class="video-container-wrapper">
-    <div class="top-controls">
-      <div class="server-buttons" id="serverButtons"></div>
-      <button class="fullscreen-btn" onclick="rotateAndFullscreen()">⛶ Fullscreen</button>
-    </div>
-    <div class="video-container" id="videoContainer">
-      <video id="videoElement" controls autoplay playsinline preload="auto"></video>
-    </div>
-  </div>
+<header>
+
+<h1>Live Football TV</h1>
+<p>Watch Live Matches & Highlights</p>
+
+</header>
+
+<div class="container" id="matches"></div>
+
+<div class="player" id="player">
+  <video id="video" controls autoplay></video>
+  <button class="close" onclick="closePlayer()">Close</button>
 </div>
-
-<div class="tabs">
-  <div onclick="showTab(this, 'football')">Football</div>
-  <div onclick="showTab(this, 'cricket')">Cricket</div>
-  <div class="active" onclick="showTab(this, 'allMatches')">All</div>
-</div>
-
-<div id="football" class="match-section active">
-  <!-- Football Matches -->
-  <div class="match-card" data-start="2025-06-26T06:55:00" data-end="2026-07-26T09:30:00"
-    onclick="prepareVideoPlayer('Fifa Club Cup 2025',
-      ['https://d3o3cim6uzorb4.cloudfront.net/out/v1/f683685242b549f48ea8a5171e3e993a/index.m3u8',
-       'https://example.com/laliga/stream.m3u8'],
-      [{ drmScheme: 'clearkey', drmLicense: '11111111111111111111111111111111:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' }, {}]
-    )">
-    <div>Fifa Club Cup 2025</div>
-    <div class="match-teams">
-      <div class="team">
-        <img src="https://i.postimg.cc/KYfzdntv/download-9.png" />
-        <div class="team-name">River Plate</div>
-      </div><b>VS</b>
-      <div class="team">
-        <img src="https://i.postimg.cc/k4549ByN/download-8.png" />
-        <div class="team-name">Inter Milan</div>
-      </div>
-    </div>
-    <div class="live" id="status0">Loading...</div>
-    <div class="timer" id="timer0">--:--:--</div>
-  </div>
-
-  <div class="match-card" data-start="2026-01-24T20:00:00" data-end="2026-06-24T23:00:00"
-    onclick="prepareVideoPlayer('Serie A Derby',
-      ['https://example.com/seriea/index.mpd',
-       'https://example.com/seriea/stream.m3u8'],
-      [{ drmScheme: 'clearkey', drmLicense: '22222222222222222222222222222222:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb' }, {}]
-    )">
-    <div>Serie A Derby</div>
-    <div class="match-teams">
-      <div class="team">
-        <img src="https://upload.wikimedia.org/wikipedia/en/e/e1/Inter_Milan.svg" />
-        <div class="team-name">Inter Milan</div>
-      </div><b>VS</b>
-      <div class="team">
-        <img src="https://upload.wikimedia.org/wikipedia/en/d/d0/AC_Milan_logo.svg" />
-        <div class="team-name">AC Milan</div>
-      </div>
-    </div>
-    <div class="live" id="status1">Loading...</div>
-    <div class="timer" id="timer1">--:--:--</div>
-  </div>
-
-  <div class="match-card" data-start="2025-06-01T18:30:00" data-end="2025-06-01T21:30:00"
-    onclick="prepareVideoPlayer('Premier League Showdown',
-      ['https://example.com/epl/index.mpd',
-       'https://example.com/epl/stream.m3u8'],
-      [{ drmScheme: 'clearkey', drmLicense: '44444444444444444444444444444444:dddddddddddddddddddddddddddddddd' }, {}]
-    )">
-    <div>Premier League Showdown</div>
-    <div class="match-teams">
-      <div class="team">
-        <img src="https://upload.wikimedia.org/wikipedia/en/7/7a/Manchester_United_FC_crest.svg" />
-        <div class="team-name">Man United</div>
-      </div><b>VS</b>
-      <div class="team">
-        <img src="https://upload.wikimedia.org/wikipedia/en/c/c2/Chelsea_FC.svg" />
-        <div class="team-name">Chelsea</div>
-      </div>
-    </div>
-    <div class="live" id="status2">Loading...</div>
-    <div class="timer" id="timer2">--:--:--</div>
-  </div>
-</div>
-
-<div id="cricket" class="match-section">
-  <!-- Cricket Matches -->
-  <div class="match-card" data-start="2025-07-16T19:25:00" data-end="2025-08-05T23:30:00"
-    onclick="prepareVideoPlayer('Bangladesh Tour of Srilanka 2025',
-      ['https://live.tsports.com/mobile_hls/tsports_live_2/playlist.m3u8',
-       'https://tvsen5.aynaott.com/YNMn5kZz8aLm/tracks-v1a1/mono.ts.m3u8'],
-      [{ drmScheme: 'clearkey', drmLicense: '159a2b4e1d2d7f16892d35d935a2fb34:07809840dd0f511221ca78459167d1b3' }, {}]
-    )">
-    <div>Bangladesh Tour of Srilanka 2025 (ODI)</div>
-    <div class="match-teams">
-      <div class="team">
-        <img src="https://i.postimg.cc/P5h1gsHB/bangladesh.png" />
-        <div class="team-name">Bangladesh</div>
-      </div><b>VS</b>
-      <div class="team">
-        <img src="https://i.postimg.cc/zvKLf5GX/circle-2.png" />
-        <div class="team-name">Srilanka</div>
-      </div>
-    </div>
-    <div class="live" id="status3">Loading...</div>
-    <div class="timer" id="timer3">--:--:--</div>
-  </div>
-
-  <div class="match-card" data-start="2025-07-16T17:00:00" data-end="2025-08-16T20:50:00"
-    onclick="prepareVideoPlayer('<div>ZIM,SA,NZ Tri Series 2025',
-      ['http://163.172.57.3/crc5/tracks-v1a1/mono.m3u8',
-       'https://ottb.live.cf.ww.aiv-cdn.net/lhr-nitro/live/clients/dash/enc/lsdasbvglv/out/v1/bb548a3626cd4708afbb94a58d71dce9/cenc.mpd'],
-      [{ drmScheme: 'clearkey', drmLicense: '4e993aa8c1f295f8b94e8e9e6f6d0bfe:86a1ed6e96caab8eb1009fe530d2cf4f' }, {}]
-    )">
-    <div>ZIM,SA,NZ Tri Series 2025</div>
-    <div class="match-teams">
-      <div class="team">
-        <img src="https://i.postimg.cc/Pq6dk6kk/340505.png
-" />
-        <div class="team-name">New Zeland</div>
-      </div><b>VS</b>
-      <div class="team">
-        <img src="https://i.postimg.cc/zfDqMs6j/382733.png" />
-        <div class="team-name">South Africa</div>
-      </div>
-    </div>
-    <div class="live" id="status4">Loading...</div>
-    <div class="timer" id="timer4">--:--:--</div>
-  </div>
-</div>
-
-<div id="allMatches" class="match-section active">
-  <script>
-    document.addEventListener('DOMContentLoaded', function () {
-      const footballCards = document.querySelectorAll('#football .match-card');
-      const cricketCards = document.querySelectorAll('#cricket .match-card');
-      const allSection = document.getElementById('allMatches');
-      footballCards.forEach(card => allSection.appendChild(card.cloneNode(true)));
-      cricketCards.forEach(card => allSection.appendChild(card.cloneNode(true)));
-    });
-  </script>
-</div>
-
-
 
 <script>
-let hls, shakaPlayer;
 
-function cleanupPlayers(videoElement) {
-  if (hls) { hls.destroy(); hls = null; }
-  if (shakaPlayer) { shakaPlayer.destroy(); shakaPlayer = null; }
-  videoElement.pause();
-  videoElement.removeAttribute('src');
-  videoElement.load();
+const matches=[
+{
+ league:"Premier League",
+ t1:"Everton",
+ t2:"Manchester United",
+ logo1:"https://upload.wikimedia.org/wikipedia/en/7/7c/Everton_FC_logo.svg",
+ logo2:"https://upload.wikimedia.org/wikipedia/en/7/7a/Manchester_United_FC_crest.svg",
+ stream:"https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8"
+},
+{
+ league:"La Liga",
+ t1:"Alaves",
+ t2:"Girona",
+ logo1:"https://upload.wikimedia.org/wikipedia/en/3/3b/Deportivo_Alav%C3%A9s_logo.svg",
+ logo2:"https://upload.wikimedia.org/wikipedia/en/9/90/Girona_FC_logo.svg",
+ stream:"https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8"
+},
+{
+ league:"MLS",
+ t1:"LA Galaxy",
+ t2:"New York City",
+ logo1:"https://upload.wikimedia.org/wikipedia/en/5/5c/Los_Angeles_Galaxy_logo.svg",
+ logo2:"https://upload.wikimedia.org/wikipedia/en/8/8a/New_York_City_FC_logo.svg",
+ stream:"https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8"
+}
+];
+
+const container=document.getElementById("matches");
+
+matches.forEach(m=>{
+
+container.innerHTML+=
+<div class="card">
+<div class="hd">HD</div>
+<h3>${m.league}</h3>
+
+<div class="match">
+<div class="team">
+<img src="${m.logo1}">
+<p>${m.t1}</p>
+</div>
+
+<div class="vs">VS</div>
+
+<div class="team">
+<img src="${m.logo2}">
+<p>${m.t2}</p>
+</div>
+</div>
+
+<button class="btn" onclick="play('${m.stream}')">WATCH LIVE</button>
+
+</div>
+;
+
+});
+
+function play(url){
+
+const video=document.getElementById("video");
+
+if(Hls.isSupported()){
+ var hls=new Hls();
+ hls.loadSource(url);
+ hls.attachMedia(video);
+}
+else{
+ video.src=url;
 }
 
-function setupHls(videoElement, url) {
-  if (Hls.isSupported()) {
-    hls = new Hls({ /* config */ });
-    hls.loadSource(url);
-    hls.attachMedia(videoElement);
-    hls.on(Hls.Events.MANIFEST_PARSED, () => {
-      videoElement.play().catch(err => console.warn('HLS play issue:', err));
-    });
-    hls.on(Hls.Events.ERROR, (event, data) => {
-      console.error('HLS.js error:', data);
-    });
-  } else if (videoElement.canPlayType('application/vnd.apple.mpegurl')) {
-    videoElement.src = url;
-    videoElement.type = 'application/vnd.apple.mpegurl';
-    videoElement.addEventListener('loadedmetadata', () => {
-      videoElement.play().catch(err => console.warn('Native HLS play issue:', err));
-    });
-  } else {
-    alert('Your browser does not support HLS playback.');
-  }
+
+document.getElementById("player").style.display="flex";
 }
 
-async function setupShaka(videoElement, url, keyId = null, key = null) {
-  shakaPlayer = new shaka.Player(videoElement);
-  const config = {
-    abr: { enabled: true },
-    streaming: { rebufferingGoal: 4, bufferingGoal: 10, bufferBehind: 20 }
-  };
-  if (keyId && key) config.drm = { clearKeys: { [keyId]: key } };
-  shakaPlayer.configure(config);
-  shakaPlayer.addEventListener('error', e => console.error('Shaka Error:', e.detail));
-  try {
-    await shakaPlayer.load(url);
-    await videoElement.play().catch(err => console.warn('Shaka play issue:', err));
-  } catch (e) {
-    console.error('Shaka load failed:', e);
-  }
+function closePlayer(){
+ document.getElementById("player").style.display="none";
+ document.getElementById("video").pause();
 }
 
-function loadStream(url, videoElement, drmInfo = null) {
-  cleanupPlayers(videoElement);
-  if (url.endsWith('.mpd')) {
-    const [keyId, key] = drmInfo?.drmLicense?.split(':') || [];
-    setupShaka(videoElement, url, keyId, key);
-  } else if (url.endsWith('.m3u8')) {
-    setupHls(videoElement, url);
-  } else {
-    videoElement.src = url;
-    videoElement.play().catch(err => console.warn('Direct play error:', err));
-  }
-}
-
-// ✅ Fix: setTimeout used to avoid requiring double-click
-function prepareVideoPlayer(title, servers, drmArray = []) {
-  const videoElement = document.getElementById('videoElement');
-  cleanupPlayers(videoElement);
-  document.getElementById('matchTitle').innerText = title;
-  document.getElementById('videoArea').classList.add('active');
-  setTimeout(() => {
-    loadStream(servers[0], videoElement, drmArray[0]);
-  }, 100); // <- ফিক্স করা হয়েছে
-
-  const btns = document.getElementById('serverButtons');
-  btns.innerHTML = '';
-  servers.forEach((url, i) => {
-    const btn = document.createElement('button');
-    btn.innerText = `Server ${i+1}`;
-    btn.className = i === 0 ? 'active' : '';
-    btn.onclick = () => {
-      btns.querySelectorAll('button').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      setTimeout(() => {
-        loadStream(url, videoElement, drmArray[i]);
-      }, 100); // <- ফিক্স করা হয়েছে
-    };
-    btns.appendChild(btn);
-  });
-}
-
-function showTab(tab, id) {
-  document.querySelectorAll('.tabs div').forEach(t => t.classList.remove('active'));
-  tab.classList.add('active');
-  document.querySelectorAll('.match-section').forEach(sec => sec.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
-}
-
-function updateMatchTimers() {
-  const now = new Date();
-  document.querySelectorAll('.match-card').forEach(card => {
-    const start = new Date(card.getAttribute('data-start')),
-          end = new Date(card.getAttribute('data-end'));
-    const status = card.querySelector('.live'),
-          timer = card.querySelector('.timer');
-    if (now < start) {
-      const diff = start - now;
-      const d = Math.floor(diff/(1000*60*60*24)),
-            h = Math.floor((diff%(1000*60*60*24))/(1000*60*60)),
-            m = Math.floor((diff%(1000*60*60))/(1000*60)),
-            s = Math.floor((diff%(1000*60))/1000);
-      timer.innerText = `${d}d ${h}h ${m}m ${s}s`;
-      status.innerText = '';
-      status.classList.remove('flashing');
-      card.style.display = 'block';
-    } else if (now >= start && now <= end) {
-      status.innerText = '● Live';
-      status.classList.add('flashing');
-      timer.innerText = '';
-      card.style.display = 'block';
-    } else {
-      card.remove();
-    }
-  });
-}
-setInterval(updateMatchTimers, 1000);
-updateMatchTimers();
-
-let rotated = false;
-function rotateAndFullscreen() {
-  const v = document.getElementById('videoElement'), c = document.getElementById('videoContainer');
-  if (!rotated) {
-    if (c.requestFullscreen) c.requestFullscreen();
-    screen.orientation?.lock?.('landscape').catch(()=>{});
-    history.pushState({rotated:true}, '');
-    Object.assign(v.style, {
-      position: 'absolute', top:'50%', left:'50%', transform:'translate(-50%,-50%) rotate(90deg)',
-      width:'140vh', height:'100vw', objectFit:'contain', background:'black'
-    });
-    rotated = true;
-  } else {
-    if (document.fullscreenElement) document.exitFullscreen().catch(()=>{});
-    screen.orientation?.unlock?.();
-    v.style = '';
-    rotated = false;
-    history.back();
-  }
-}
-window.addEventListener('popstate', ()=>{ if (rotated) rotateAndFullscreen(); });
 </script>
-    <script>
-    function setupHls(videoElement, url) {
-  if (Hls.isSupported()) {
-    hls = new Hls();
-    hls.loadSource(url);
-    hls.attachMedia(videoElement);
-    hls.on(Hls.Events.MANIFEST_PARSED, () => {
-      videoElement.play().then(() => {
-        console.log('HLS Playing...');
-      }).catch(err => {
-        console.warn('HLS play error:', err);
-        // Optionally reattempt
-        setTimeout(() => videoElement.play().catch(()=>{}), 500);
-      });
-    });
-    hls.on(Hls.Events.ERROR, (event, data) => {
-      console.error('HLS.js error:', data);
-    });
-  } else if (videoElement.canPlayType('application/vnd.apple.mpegurl')) {
-    videoElement.src = url;
-    videoElement.type = 'application/vnd.apple.mpegurl';
-    videoElement.addEventListener('loadedmetadata', () => {
-      videoElement.play().then(() => {
-        console.log('Native HLS Playing...');
-      }).catch(err => {
-        console.warn('Native HLS play issue:', err);
-        setTimeout(() => videoElement.play().catch(()=>{}), 500);
-      });
-    });
-  } else {
-    alert('Your browser does not support HLS playback.');
-  }
-}
-    
-    </script>
+
+<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 
 </body>
-  </html>
-
-
-
-
+</html>
